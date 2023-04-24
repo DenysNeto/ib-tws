@@ -1,6 +1,4 @@
-import assert from 'assert';
-
-
+import assert from "assert";
 
 export default class Contract {
   static limit(data) {
@@ -8,10 +6,10 @@ export default class Contract {
     assert(data.totalQuantity > 0);
     assert(data.lmtPrice > 0);
 
-    return Contract._toOrder(data, 'LMT', {
+    return Contract._toOrder(data, "LMT", {
       transmit: true,
-      openClose: 'O',
-	    tif: 'DAY',
+      openClose: "O",
+      tif: "DAY",
       /*
       origin: 0,
       parentId: 0,
@@ -42,40 +40,34 @@ export default class Contract {
     });
   }
 
-
-
   static market(data) {
     assert(data.action);
     assert(data.totalQuantity > 0);
 
-    return Contract._toOrder(data, 'MKT', {
+    return Contract._toOrder(data, "MKT", {
       transmit: true,
-      goodAfterTime: '',
-      goodTillDate: ''
+      goodAfterTime: "",
+      goodTillDate: "",
     });
   }
-
-
 
   static stop(data) {
     assert(data.action);
     assert(data.totalQuantity > 0);
     assert(data.auxPrice > 0);
 
-    return Contract._toOrder(data, 'STP', {
+    return Contract._toOrder(data, "STP", {
       transmit: true,
       parentId: 0,
-      tif: 'DAY'
+      tif: "DAY",
     });
   }
-
-
 
   static _toOrder(data, orderType, defaults) {
     assert(!data.orderType);
 
     let o = {
-      orderType: orderType
+      orderType: orderType,
     };
 
     for (let k in defaults) {

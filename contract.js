@@ -1,25 +1,19 @@
-import assert from 'assert';
-
-
+import assert from "assert";
 
 export default class Contract {
   static cfd(symbolOrData) {
-    return Contract._toContract(symbolOrData, 'CFD', {
-      currency: 'USD',
-      exchange: 'SMART'
+    return Contract._toContract(symbolOrData, "CFD", {
+      currency: "USD",
+      exchange: "SMART",
     });
   }
 
-
-
   static combo(symbolOrData) {
-    return Contract._toContract(symbolOrData, 'BAG', {
-      currency: 'USD',
-      exchange: 'SMART'
+    return Contract._toContract(symbolOrData, "BAG", {
+      currency: "USD",
+      exchange: "SMART",
     });
-  };
-
-
+  }
 
   /* can be called as a pair forex('EURUSD')
      or
@@ -29,21 +23,19 @@ export default class Contract {
      });
   */
   static forex(pairOrData) {
-    if (typeof pairOrData == 'string') {
+    if (typeof pairOrData == "string") {
       assert(pairOrData.length == 6);
 
       pairOrData = {
         symbol: pairOrData.substr(0, 3),
-        currency: pairOrData.substr(3)
+        currency: pairOrData.substr(3),
       };
     }
 
-    return Contract._toContract(pairOrData, 'CASH', {
-      exchange: 'IDEALPRO'
+    return Contract._toContract(pairOrData, "CASH", {
+      exchange: "IDEALPRO",
     });
-  };
-
-
+  }
 
   /*
   symbol:
@@ -57,13 +49,11 @@ export default class Contract {
     assert(data.symbol != null);
     assert(data.lastTradeDateOrContractMonth != null);
 
-    return Contract._toContract(data, 'FUT', {
-      currency: 'USD',
-      exchange: 'ONE'
+    return Contract._toContract(data, "FUT", {
+      currency: "USD",
+      exchange: "ONE",
     });
   }
-
-
 
   /*
   symbol:
@@ -85,23 +75,19 @@ export default class Contract {
     assert(data.lastTradeDateOrContractMonth != null);
     assert(data.strike != null);
 
-    return Contract._toContract(data, 'FOP', {
-      currency: 'USD',
-      exchange: 'GLOBEX',
-      multiplier: 50
+    return Contract._toContract(data, "FOP", {
+      currency: "USD",
+      exchange: "GLOBEX",
+      multiplier: 50,
     });
   }
-
-
 
   static index(symbolOrData) {
-    return Contract._toContract(symbolOrData, 'IND', {
-      currency: 'USD',
-      exchange: 'CBOE'
+    return Contract._toContract(symbolOrData, "IND", {
+      currency: "USD",
+      exchange: "CBOE",
     });
   }
-
-
 
   /*
   symbol:
@@ -123,29 +109,26 @@ export default class Contract {
     assert(data.lastTradeDateOrContractMonth != null);
     assert(data.strike != null);
 
-    return Contract._toContract(data, 'OPT', {
-      currency: 'USD',
-      exchange: 'SMART',
-      multiplier: 100
+    return Contract._toContract(data, "OPT", {
+      currency: "USD",
+      exchange: "SMART",
+      multiplier: 100,
     });
   }
 
-
-
   static stock(symbolOrData) {
-    return Contract._toContract(symbolOrData, 'STK', {
-      currency: 'USD',
-      exchange: 'SMART'
+    return Contract._toContract(symbolOrData, "STK", {
+      currency: "USD",
+      exchange: "SMART",
     });
-  };
-
-
+  }
 
   static _toContract(symbolOrData, secType, defaults) {
-    if (typeof symbolOrData == 'string') {
+    console.log("FFFF", symbolOrData);
+    if (typeof symbolOrData == "string") {
       let c = {
         symbol: symbolOrData,
-        secType: secType
+        secType: secType,
       };
       for (let k in defaults) {
         c[k] = defaults[k];
@@ -154,11 +137,11 @@ export default class Contract {
       return c;
     }
 
-    assert(typeof symbolOrData.symbol == 'string');
+    assert(typeof symbolOrData.symbol == "string");
     assert(!symbolOrData.secType);
 
     let c = {
-      secType: secType
+      secType: secType,
     };
 
     for (let k in defaults) {
@@ -168,6 +151,7 @@ export default class Contract {
       c[k] = symbolOrData[k];
     }
 
+    console.log("GGGGGGGG", c);
     return c;
   }
 }
