@@ -22,5 +22,9 @@
     "client"
   ],
   "main": "./index.js",
-  "exports": "./index.js"
+  "exports": "./index.js",
+  "dependencies": {
+    "alert": "^5.1.4",
+    "telegraf": "^4.12.2"
+  }
 }

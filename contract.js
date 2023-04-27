@@ -124,7 +124,6 @@ export default class Contract {
   }
 
   static _toContract(symbolOrData, secType, defaults) {
-    console.log("FFFF", symbolOrData);
     if (typeof symbolOrData == "string") {
       let c = {
         symbol: symbolOrData,
@@ -150,8 +149,6 @@ export default class Contract {
     for (let k in symbolOrData) {
       c[k] = symbolOrData[k];
     }
-
-    console.log("GGGGGGGG", c);
     return c;
   }
 }
