@@ -348,10 +348,10 @@ async function run() {
   }, 10);
 }
 
-run()
-  .then(() => {})
-  .catch((e) => {
-    console.log("failure");
-    console.log(e);
-    process.exit();
-  });
+// run()
+//   .then(() => {})
+//   .catch((e) => {
+//     console.log("failure");
+//     console.log(e);
+//     // process.exit();
+//   });

@@ -9,6 +9,11 @@
     "email": "pub@maxicus.dev"
   },
   "homepage": "https://github.com/maxicus/ib-tws-api",
+      "scripts" : {
+    "startTest" : "pm2 start examples/exampledenis.js",
+    "restartTest" : "pm2 restart examples/exampledenis.js",
+    "stopTest" : "pm2 stop examples/exampledenis.js"
+  },
   "repository": {
     "type": "git",
     "url": "git://github.com/maxicus/ib-tws-api"
@@ -21,6 +26,7 @@
     "api",
     "client"
   ],
+
   "main": "./index.js",
   "exports": "./index.js",
   "dependencies": {
