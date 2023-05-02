@@ -10,10 +10,8 @@
   },
   "homepage": "https://github.com/maxicus/ib-tws-api",
   "scripts": {
-    "startTest": "pm2 start examples/exampledenis.js -f",
-    "restartTest": "pm2 restart examples/exampledenis.js",
-    "stopTest": "pm2 stop examples/exampledenis.js",
-    "deleteTest": "pm2 delete examples/exampledenis.js"
+    "starter" : "node pm2-starter.js",
+    "killer" : "node pm2-killer.js"
   },
   "repository": {
     "type": "git",
