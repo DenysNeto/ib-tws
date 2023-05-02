@@ -1,5 +1,6 @@
 import { Client, Contract, Order } from "../index.js";
 import Logger from "./logger.js";
+import IP from "ip";
 
 process.env.NODE_DEBUG = "ib-tws-api";
 
@@ -100,7 +101,7 @@ async function run() {
   };
 
   setInterval(() => {
-    Logger("Application ping", "telegram");
+    Logger("Application live on :" + IP.address(), "telegram");
   }, 60000);
 
   setInterval(async () => {

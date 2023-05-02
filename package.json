@@ -10,8 +10,8 @@
   },
   "homepage": "https://github.com/maxicus/ib-tws-api",
   "scripts": {
-    "starter" : "node pm2-starter.js",
-    "killer" : "node pm2-killer.js"
+    "starter": "node pm2-starter.js",
+    "killer": "node pm2-killer.js"
   },
   "repository": {
     "type": "git",
@@ -29,6 +29,7 @@
   "exports": "./index.js",
   "dependencies": {
     "alert": "^5.1.4",
+    "ip": "^1.1.8",
     "pm2": "^5.3.0",
     "telegraf": "^4.12.2"
   }
