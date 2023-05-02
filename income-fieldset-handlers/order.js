@@ -1,7 +1,5 @@
-import IncomeMessageType from '../const-income-message-type.js';
-import ServerVersion from '../const-server-version.js';
-
-
+import IncomeMessageType from "../const-income-message-type.js";
+import ServerVersion from "../const-server-version.js";
 
 class OrderDecoder {
   constructor(version, serverVersion, fields) {
@@ -14,37 +12,25 @@ class OrderDecoder {
     this.contract = {};
   }
 
-
-
   _shift() {
     return this.fields.shift();
   }
-
-
 
   _shiftInt() {
     return parseInt(this.fields.shift());
   }
 
-
-
   _shiftFloat() {
     return parseFloat(this.fields.shift());
   }
 
-
-
   _shiftBool() {
-    return this.fields.shift() == '1';
+    return this.fields.shift() == "1";
   }
-
-
 
   decodeOrderId() {
     this.order.orderId = this._shiftInt();
   }
-
-
 
   decodeContractFields() {
     this.contract.conId = this._shiftInt();
@@ -67,29 +53,23 @@ class OrderDecoder {
     }
   }
 
-
-
   decodeAction() {
     this.order.action = this._shift();
   }
 
-
-
   decodeTotalQuantity() {
-    if (this.serverVersion >= ServerVersion.MIN_SERVER_VER_FRACTIONAL_POSITIONS) {
+    if (
+      this.serverVersion >= ServerVersion.MIN_SERVER_VER_FRACTIONAL_POSITIONS
+    ) {
       this.order.totalQuantity = this._shiftFloat();
     } else {
       this.order.totalQuantity = this._shiftInt();
     }
-}
-
-
+  }
 
   decodeOrderType() {
     this.order.orderType = this._shift();
   }
-
-
 
   decodeLmtPrice() {
     if (this.version < 29) {
@@ -99,8 +79,6 @@ class OrderDecoder {
     }
   }
 
-
-
   decodeAuxPrice() {
     if (this.version < 30) {
       this.order.auxPrice = this._shiftFloat();
@@ -109,85 +87,57 @@ class OrderDecoder {
     }
   }
 
-
-
   decodeTIF() {
     this.order.tif = this._shift();
   }
-
-
 
   decodeOcaGroup() {
     this.order.ocaGroup = this._shift();
   }
 
-
-
   decodeAccount() {
     this.order.account = this._shift();
   }
-
-
 
   decodeOpenClose() {
     this.order.openClose = this._shift();
   }
 
-
-
   decodeOrigin() {
     this.order.origin = this._shiftInt();
   }
-
-
 
   decodeOrderRef() {
     this.order.orderRef = this._shift();
   }
 
-
-
   decodeClientId() {
     this.order.clientId = this._shiftInt();
   }
-
-
 
   decodePermId() {
     this.order.permId = this._shiftInt();
   }
 
-
-
   decodeOutsideRth() {
     this.order.outsideRth = this._shiftBool();
   }
-
-
 
   decodeHidden() {
     this.order.hidden = this._shiftBool();
   }
 
-
-
   decodeDiscretionaryAmt() {
     this.order.discretionaryAmt = this._shiftFloat();
   }
-
-
 
   decodeGoodAfterTime() {
     this.order.goodAfterTime = this._shift();
   }
 
-
-
   skipSharesAllocation() {
-    let _sharesAllocation = this._shift();   // deprecated
+    let _sharesAllocation = this._shift(); // deprecated
   }
-
-
 
   decodeFAParams() {
     this.order.faGroup = this._shift();
@@ -196,39 +146,27 @@ class OrderDecoder {
     this.order.faProfile = this._shift();
   }
 
-
-
   decodeModelCode() {
     if (this.serverVersion >= ServerVersion.MIN_SERVER_VER_MODELS_SUPPORT) {
       this.order.modelCode = this._shift();
     }
   }
 
-
-
   decodeGoodTillDate() {
     this.order.goodTillDate = this._shift();
   }
-
-
 
   decodeRule80A() {
     this.order.rule80A = this._shift();
   }
 
-
-
   decodePercentOffset() {
     this.order.percentOffset = this._shiftFloat();
   }
 
-
-
   decodeSettlingFirm() {
     this.order.settlingFirm = this._shift();
   }
-
-
 
   decodeShortSaleParams() {
     this.order.shortSaleSlot = this._shiftInt();
@@ -238,15 +176,11 @@ class OrderDecoder {
     } else if (this.version >= 23) {
       this.order.exemptCode = this._shiftInt();
     }
-}
-
-
+  }
 
   decodeAuctionStrategy() {
     this.order.auctionStrategy = this._shiftInt();
   }
-
-
 
   decodeBoxOrderParams() {
     this.order.startingPrice = this._shiftFloat();
@@ -254,79 +188,54 @@ class OrderDecoder {
     this.order.delta = this._shiftFloat();
   }
 
-
-
   decodePegToStkOrVolOrderParams() {
     this.order.stockRangeLower = this._shiftFloat();
     this.order.stockRangeUpper = this._shiftFloat();
   }
 
-
-
   decodeDisplaySize() {
     this.order.displaySize = this._shiftInt();
   }
-
-
 
   decodeBlockOrder() {
     this.order.blockOrder = this._shiftBool();
   }
 
-
-
   decodeSweepToFill() {
     this.order.sweepToFill = this._shiftBool();
   }
-
-
 
   decodeAllOrNone() {
     this.order.allOrNone = this._shiftBool();
   }
 
-
-
   decodeMinQty() {
     this.order.minQty = this._shiftInt();
   }
-
-
 
   decodeOcaType() {
     this.order.ocaType = this._shiftInt();
   }
 
-
-
   decodeETradeOnly() {
     this.order.eTradeOnly = this._shiftBool();
   }
-
-
 
   decodeFirmQuoteOnly() {
     this.order.firmQuoteOnly = this._shiftBool();
   }
 
-
-
   decodeNbboPriceCap() {
     this.order.nbboPriceCap = this._shiftFloat();
   }
-
-
 
   decodeParentId() {
     this.order.parentId = this._shiftInt();
   }
 
-
-
   decodeTriggerMethod() {
     this.order.triggerMethod = this._shiftInt();
   }
-
 
   decodeVolOrderParams(readOpenOrderAttribs) {
     this.order.volatility = this._shiftFloat();
@@ -357,8 +266,6 @@ class OrderDecoder {
     this.order.referencePriceType = this._shiftInt();
   }
 
-
-
   decodeTrailParams() {
     this.order.trailStopPrice = this._shiftFloat();
     if (this.version >= 30) {
@@ -366,14 +273,10 @@ class OrderDecoder {
     }
   }
 
-
-
   decodeBasisPoints() {
     this.order.basisPoints = this._shiftFloat();
     this.order.basisPointsType = this._shiftInt();
   }
-
-
 
   decodeComboLegs() {
     this.contract.comboLegsDescrip = this._shift();
@@ -385,17 +288,17 @@ class OrderDecoder {
         this.contract.comboLegs = [];
 
         for (let n = 0; n < comboLegsCount; n++) {
-            const comboLeg = {};
-            comboLeg.conId = this._shiftInt();
-            comboLeg.ratio = this._shiftInt();
-            comboLeg.action = this._shift();
-            comboLeg.exchange = this._shift();
-            comboLeg.openClose = this._shiftInt();
-            comboLeg.shortSaleSlot = this._shiftInt();
-            comboLeg.designatedLocation = this._shift();
-            comboLeg.exemptCode = this._shiftInt();
-            this.contract.comboLegs.push(comboLeg);
-          }
+          const comboLeg = {};
+          comboLeg.conId = this._shiftInt();
+          comboLeg.ratio = this._shiftInt();
+          comboLeg.action = this._shift();
+          comboLeg.exchange = this._shift();
+          comboLeg.openClose = this._shiftInt();
+          comboLeg.shortSaleSlot = this._shiftInt();
+          comboLeg.designatedLocation = this._shift();
+          comboLeg.exemptCode = this._shiftInt();
+          this.contract.comboLegs.push(comboLeg);
+        }
 
         let orderComboLegsCount = this._shiftInt();
         if (orderComboLegsCount > 0) {
@@ -409,8 +312,6 @@ class OrderDecoder {
       }
     }
   }
-
-
 
   decodeSmartComboRoutingParams() {
     if (this.version >= 26) {
@@ -427,8 +328,6 @@ class OrderDecoder {
     }
   }
 
-
-
   decodeScaleOrderParams() {
     if (this.version >= 20) {
       this.order.scaleInitLevelSize = this._shiftInt();
@@ -440,8 +339,11 @@ class OrderDecoder {
 
     this.order.scalePriceIncrement = this._shiftFloat();
 
-    if (this.version >= 28 && this.order.scalePriceIncrement != null &&
-        this.order.scalePriceIncrement > 0.0) {
+    if (
+      this.version >= 28 &&
+      this.order.scalePriceIncrement != null &&
+      this.order.scalePriceIncrement > 0.0
+    ) {
       this.order.scalePriceAdjustValue = this._shiftFloat();
       this.order.scalePriceAdjustInterval = this._shiftInt();
       this.order.scaleProfitOffset = this._shiftFloat();
@@ -452,8 +354,6 @@ class OrderDecoder {
     }
   }
 
-
-
   decodeHedgeParams() {
     if (this.version >= 24) {
       this.order.hedgeType = this._shift();
@@ -463,22 +363,16 @@ class OrderDecoder {
     }
   }
 
-
-
   decodeOptOutSmartRouting() {
     if (this.version >= 25) {
       this.order.optOutSmartRouting = this._shiftBool();
     }
   }
 
-
-
   decodeClearingParams() {
     this.order.clearingAccount = this._shift();
     this.order.clearingIntent = this._shift();
   }
-
-
 
   decodeNotHeld() {
     if (this.version >= 22) {
@@ -486,13 +380,11 @@ class OrderDecoder {
     }
   }
 
-
-
   decodeDeltaNeutral() {
     if (this.version >= 20) {
       const deltaNeutralContractPresent = this._shiftBool();
       if (deltaNeutralContractPresent) {
-        this.contract.deltaNeutralContract = DeltaNeutralContract()
+        this.contract.deltaNeutralContract = DeltaNeutralContract();
         this.contract.deltaNeutralContract.conId = this._shiftInt();
         this.contract.deltaNeutralContract.delta = this._shiftFloat();
         this.contract.deltaNeutralContract.price = this._shiftFloat();
@@ -500,15 +392,13 @@ class OrderDecoder {
     }
   }
 
-
-
   decodeAlgoParams() {
     if (this.version >= 21) {
       this.order.algoStrategy = this._shift();
       if (this.order.algoStrategy) {
         const algoParamsCount = this._shiftInt();
         if (algoParamsCount > 0) {
-          this.order.algoParams = []
+          this.order.algoParams = [];
           for (let n = 0; n < algoParamsCount; n++) {
             let tagValue = {};
             tagValue.tag = this._shift();
@@ -520,21 +410,15 @@ class OrderDecoder {
     }
   }
 
-
-
   decodeSolicited() {
     if (this.version >= 33) {
       this.order.solicited = this._shiftBool();
     }
   }
 
-
-
   decodeOrderStatus() {
     this.orderState.status = this._shift();
   }
-
-
 
   decodeWhatIfInfoAndCommission() {
     this.order.whatIf = this._shiftBool();
@@ -560,8 +444,6 @@ class OrderDecoder {
     this.orderState.warningText = this._shift();
   }
 
-
-
   decodeVolRandomizeFlags() {
     if (this.version >= 34) {
       this.order.randomizeSize = this._shiftBool();
@@ -569,10 +451,10 @@ class OrderDecoder {
     }
   }
 
-
-
   decodePegToBenchParams() {
-    if (this.serverVersion >= ServerVersion.MIN_SERVER_VER_PEGGED_TO_BENCHMARK) {
+    if (
+      this.serverVersion >= ServerVersion.MIN_SERVER_VER_PEGGED_TO_BENCHMARK
+    ) {
       if (this.order.orderType == "PEG BENCH") {
         this.order.referenceContractId = this._shiftInt();
         this.order.isPeggedChangeAmountDecrease = this._shiftBool();
@@ -583,17 +465,17 @@ class OrderDecoder {
     }
   }
 
-
-
   decodeConditions() {
-    if (this.serverVersion >= ServerVersion.MIN_SERVER_VER_PEGGED_TO_BENCHMARK) {
+    if (
+      this.serverVersion >= ServerVersion.MIN_SERVER_VER_PEGGED_TO_BENCHMARK
+    ) {
       let conditionsSize = this._shiftInt();
       if (conditionsSize > 0) {
         this.order.conditions = [];
         for (let n = 0; n < conditionsSize; n++) {
           conditionType = this._shiftInt();
-          condition = order_condition.Create(conditionType)
-          condition.decode(fields)
+          condition = order_condition.Create(conditionType);
+          condition.decode(fields);
           this.order.conditions.push(condition);
         }
       }
@@ -603,10 +485,10 @@ class OrderDecoder {
     }
   }
 
-
-
   decodeAdjustedOrderParams() {
-    if (this.serverVersion >= ServerVersion.MIN_SERVER_VER_PEGGED_TO_BENCHMARK) {
+    if (
+      this.serverVersion >= ServerVersion.MIN_SERVER_VER_PEGGED_TO_BENCHMARK
+    ) {
       this.order.adjustedOrderType = this._shift();
       this.order.triggerPrice = this._shiftFloat();
       this.decodeStopPriceAndLmtPriceOffset();
@@ -617,14 +499,10 @@ class OrderDecoder {
     }
   }
 
-
-
   decodeStopPriceAndLmtPriceOffset() {
     this.order.trailStopPrice = this._shiftFloat();
     this.order.lmtPriceOffset = this._shiftFloat();
   }
-
-
 
   decodeSoftDollarTier() {
     if (this.serverVersion >= ServerVersion.MIN_SERVER_VER_SOFT_DOLLAR_TIER) {
@@ -634,12 +512,10 @@ class OrderDecoder {
       this.order.softDollarTier = {
         name: name,
         value: value,
-        displayName: displayName
+        displayName: displayName,
       };
     }
   }
-
-
 
   decodeCashQty() {
     if (this.serverVersion >= ServerVersion.MIN_SERVER_VER_CASH_QTY) {
@@ -647,15 +523,13 @@ class OrderDecoder {
     }
   }
 
-
-
   decodeDontUseAutoPriceForHedge() {
-    if (this.serverVersion >= ServerVersion.MIN_SERVER_VER_AUTO_PRICE_FOR_HEDGE) {
+    if (
+      this.serverVersion >= ServerVersion.MIN_SERVER_VER_AUTO_PRICE_FOR_HEDGE
+    ) {
       this.order.dontUseAutoPriceForHedge = this._shiftBool();
     }
   }
-
-
 
   decodeIsOmsContainers() {
     if (this.serverVersion >= ServerVersion.MIN_SERVER_VER_ORDER_CONTAINER) {
@@ -663,75 +537,51 @@ class OrderDecoder {
     }
   }
 
-
-
   decodeDiscretionaryUpToLimitPrice() {
     if (this.serverVersion >= ServerVersion.MIN_SERVER_VER_D_PEG_ORDERS) {
       this.order.discretionaryUpToLimitPrice = this._shiftBool();
     }
   }
 
-
-
   decodeAutoCancelDate() {
     this.order.autoCancelDate = this._shift();
   }
-
-
 
   decodeFilledQuantity() {
     this.order.filledQuantity = this._shiftFloat();
   }
 
-
-
   decodeRefFuturesConId() {
     this.order.refFuturesConId = this._shiftInt();
   }
-
-
 
   decodeAutoCancelParent() {
     this.order.autoCancelParent = this._shiftBool();
   }
 
-
-
   decodeShareholder() {
     this.order.shareholder = this._shift();
   }
-
-
 
   decodeImbalanceOnly() {
     this.order.imbalanceOnly = this._shiftBool();
   }
 
-
-
   decodeRouteMarketableToBbo() {
     this.order.routeMarketableToBbo = this._shiftBool();
   }
-
-
 
   decodeParentPermId() {
     this.order.parentPermId = this._shiftInt();
   }
 
-
-
   decodeCompletedTime() {
     this.orderState.completedTime = this._shift();
   }
 
-
-
   decodeCompletedStatus() {
     this.orderState.completedStatus = this._shift();
   }
-
-
 
   decodeUsePriceMgmtAlgo() {
     if (this.serverVersion >= ServerVersion.MIN_SERVER_VER_PRICE_MGMT_ALGO) {
@@ -740,9 +590,8 @@ class OrderDecoder {
   }
 }
 
-
-
 export function handler_OPEN_ORDER(fields) {
+  console.log("OPEN_ORDER");
   fields.shift();
 
   let version = null;
@@ -754,8 +603,8 @@ export function handler_OPEN_ORDER(fields) {
 
   let d = new OrderDecoder(version, this.serverVersion, fields);
 
-  d.decodeOrderId();   // read orderId
-  d.decodeContractFields();   // read contract fields
+  d.decodeOrderId(); // read orderId
+  d.decodeContractFields(); // read contract fields
 
   // read order fields
   d.decodeAction();
@@ -826,11 +675,9 @@ export function handler_OPEN_ORDER(fields) {
   storage.push({
     contract: d.contract,
     order: d.order,
-    orderState: d.orderState
+    orderState: d.orderState,
   });
 }
-
-
 
 export function handler_COMPLETED_ORDER(fields) {
   fields.shift();
@@ -903,10 +750,14 @@ export function handler_COMPLETED_ORDER(fields) {
   d.decodeCompletedTime();
   d.decodeCompletedStatus();
 
-  let storage = this.messageTypeStorageArray(IncomeMessageType.COMPLETED_ORDERS_END);
+  let storage = this.messageTypeStorageArray(
+    IncomeMessageType.COMPLETED_ORDERS_END
+  );
   storage.push({
     contract: d.contract,
     order: d.order,
-    orderState: d.orderState
+    orderState: d.orderState,
   });
+
+  console.log("ORDR_STATE", d.orderState);
 }

@@ -1,24 +1,20 @@
-import EventEmitter from 'events';
-import assert from 'assert';
-import util from 'util';
-const debuglog = util.debuglog('ib-tws-api');
+import EventEmitter from "events";
+import assert from "assert";
+import util from "util";
+const debuglog = util.debuglog("ib-tws-api");
 
-import ProtocolBytes from './protocol-bytes.js';
-import IncomeFieldsetHandler from './income-fieldset-handler.js';
-import IncomeMessageType from './const-income-message-type.js';
-import OutcomeMessageType from './const-outcome-message-type.js';
-import RateLimiter from './rate-limiter.js';
-import ServerVersion from './const-server-version.js';
+import ProtocolBytes from "./protocol-bytes.js";
+import IncomeFieldsetHandler from "./income-fieldset-handler.js";
+import IncomeMessageType from "./const-income-message-type.js";
+import OutcomeMessageType from "./const-outcome-message-type.js";
+import RateLimiter from "./rate-limiter.js";
+import ServerVersion from "./const-server-version.js";
 import {
   request_mktData,
   request_tickByTickData,
-  request_cancelTickByTickData
-} from './requests/market-data.js';
-import {
-  request_placeOrder
-} from './requests/order.js';
-
-
+  request_cancelTickByTickData,
+} from "./requests/market-data.js";
+import { request_placeOrder } from "./requests/order.js";
 
 /* Protocol's fieldset-level handing */
 class Client {
@@ -32,7 +28,7 @@ class Client {
   constructor(connectionParameters = {}) {
     this._connectionParameters = connectionParameters;
     this._emitter = new EventEmitter();
-    this._emitter.on('error', (e) => {
+    this._emitter.on("error", (e) => {
       // error handler to ignore it by default
     });
 
@@ -44,8 +40,6 @@ class Client {
     this._marketDataType = null;
   }
 
-
-
   /**
    * Attaches event listener
    *
@@ -56,18 +50,16 @@ class Client {
     this._emitter.on(eventName, listener);
   }
 
-
-
   async connect(p) {
     if (p != null) {
       this._connectionParameters = p;
-      console.error('ib-tws-api: deprecated use of Client.connect - please pass connection parameters to constructor instead');
+      console.error(
+        "ib-tws-api: deprecated use of Client.connect - please pass connection parameters to constructor instead"
+      );
     }
 
     await this._maybeConnect();
   }
-
-
 
   async _maybeConnect() {
     if (this._connected) {
@@ -86,11 +78,9 @@ class Client {
     }
   }
 
-
-
   async _connect() {
     if (this._protocolBytes) {
-      this._protocolBytes.removeAllListeners();   // allow gc to remove old
+      this._protocolBytes.removeAllListeners(); // allow gc to remove old
     }
 
     this._clientId = this._connectionParameters.clientId || 1;
@@ -100,27 +90,32 @@ class Client {
     this._protocolBytes = new ProtocolBytes();
 
     const timeoutMs = this._connectionParameters.timeoutMs || 30000;
-    this._rateLimiter = new RateLimiter((data) => {
-      return this._protocolBytes.sendFieldset(data);
-    }, 45, 1000, timeoutMs);
+    this._rateLimiter = new RateLimiter(
+      (data) => {
+        return this._protocolBytes.sendFieldset(data);
+      },
+      45,
+      1000,
+      timeoutMs
+    );
 
-    this._protocolBytes.on('message_fieldset', (o) => {
+    this._protocolBytes.on("message_fieldset", (o) => {
       this._onMessageFieldset(o);
     });
 
-    this._protocolBytes.on('close', (e) => {
+    this._protocolBytes.on("close", (e) => {
       this._connected = false;
-      this._emitter.emit('close');
+      this._emitter.emit("close");
     });
 
-    this._protocolBytes.on('error', (e) => {
-      this._emitter.emit('error', e);
+    this._protocolBytes.on("error", (e) => {
+      this._emitter.emit("error", e);
     });
 
     await this._protocolBytes.connect({
       host: this._connectionParameters.host,
       port: this._connectionParameters.port,
-      clientId: this._clientId
+      clientId: this._clientId,
     });
 
     this._protocolBytes.sendHandshake();
@@ -128,61 +123,58 @@ class Client {
     // attach messages handler
     this._incomeHandler = new IncomeFieldsetHandler({
       timeoutMs,
-      eventEmitter: this._emitter
+      eventEmitter: this._emitter,
     });
 
     let serverVersion = await this._incomeHandler.awaitMessageType(
-      IncomeMessageType._SERVER_VERSION);
+      IncomeMessageType._SERVER_VERSION
+    );
     this._serverVersion = serverVersion;
     this._incomeHandler.setServerVersion(serverVersion);
 
     this._connectSendStartApi();
     let [nextValidId, accounts] = await Promise.all([
       this._incomeHandler.awaitMessageType(IncomeMessageType.NEXT_VALID_ID),
-      this._incomeHandler.awaitMessageType(IncomeMessageType.MANAGED_ACCTS)
+      this._incomeHandler.awaitMessageType(IncomeMessageType.MANAGED_ACCTS),
     ]);
 
     this._nextValidId = nextValidId;
 
-    debuglog('connected');
-    debuglog({nextValidId: nextValidId, accounts: accounts});
+    debuglog("connected");
+    debuglog({ nextValidId: nextValidId, accounts: accounts });
 
     if (this._marketDataType != null) {
-      debuglog('set marketDataType to ' + this._marketDataType);
+      debuglog("set marketDataType to " + this._marketDataType);
       this._protocolBytes.sendFieldset([
         OutcomeMessageType.REQ_MARKET_DATA_TYPE,
         1 /*VERSION */,
-        this._marketDataType
+        this._marketDataType,
       ]);
     }
   }
 
-
-
   _connectSendStartApi() {
     const START_API = 71;
     const VERSION = 2;
-    const optCapab = '';
+    const optCapab = "";
 
-    this._protocolBytes.sendFieldset(
-      [START_API, VERSION, this._clientId, optCapab]);
+    this._protocolBytes.sendFieldset([
+      START_API,
+      VERSION,
+      this._clientId,
+      optCapab,
+    ]);
   }
-
-
 
   async _sendFieldsetRateLimited(fields) {
     await this._maybeConnect();
     this._rateLimiter.run(fields);
   }
 
-
-
   async _sendFieldsetExpirable(fields) {
     await this._maybeConnect();
     this._rateLimiter.runExpirable(fields);
   }
-
-
 
   _onMessageFieldset(fields) {
     if (!this._serverVersion) {
@@ -192,27 +184,22 @@ class Client {
     }
   }
 
-
-
   async _allocateRequestId() {
     await this._maybeConnect();
     return ++this._nextValidId;
   }
 
-
-
   async getCurrentTime() {
     /* Asks the current system time on the server side. */
     await this._sendFieldsetExpirable([
       OutcomeMessageType.REQ_CURRENT_TIME,
-      1 /* VERSION */
+      1 /* VERSION */,
     ]);
 
     return await this._incomeHandler.awaitMessageType(
-      IncomeMessageType.CURRENT_TIME);
+      IncomeMessageType.CURRENT_TIME
+    );
   }
-
-
 
   /*########################################################################
   ################## Market Data
@@ -228,21 +215,21 @@ class Client {
     assert(p.regulatorySnapshot == null);
 
     p.requestId = await this._allocateRequestId();
-    p.genericTickList = p.genericTickList || '';
+    p.genericTickList = p.genericTickList || "";
     p.snapshot = false;
     p.regulatorySnapshot = false;
-    await this._sendFieldsetRateLimited(request_mktData(this._serverVersion, p));
+    await this._sendFieldsetRateLimited(
+      request_mktData(this._serverVersion, p)
+    );
 
     return this._incomeHandler.requestIdEmitter(p.requestId, () => {
       this._sendFieldsetRateLimited([
         OutcomeMessageType.CANCEL_MKT_DATA,
         2 /* VERSION */,
-        p.requestId
+        p.requestId,
       ]);
     });
   }
-
-
 
   /**
    * Returns market data snapshot
@@ -253,15 +240,13 @@ class Client {
     assert(p.snapshot == null);
 
     p.requestId = await this._allocateRequestId();
-    p.genericTickList = p.genericTickList || '';
+    p.genericTickList = p.genericTickList || "";
     p.snapshot = true;
     p.regulatorySnapshot = p.regulatorySnapshot || false;
     await this._sendFieldsetExpirable(request_mktData(this._serverVersion, p));
 
     return await this._incomeHandler.awaitRequestId(p.requestId);
   }
-
-
 
   /**
    * The API can receive frozen market data from Trader Workstation.
@@ -275,7 +260,9 @@ class Client {
    *                                2 for frozen market data
    */
   async reqMarketDataType(marketDataType) {
-    if (this._serverVersion < ServerVersion.MIN_SERVER_VER_REQ_MARKET_DATA_TYPE) {
+    if (
+      this._serverVersion < ServerVersion.MIN_SERVER_VER_REQ_MARKET_DATA_TYPE
+    ) {
       throw new Error("It does not support market data type requests.");
     }
 
@@ -285,17 +272,15 @@ class Client {
     await this._sendFieldsetRateLimited([
       OutcomeMessageType.REQ_MARKET_DATA_TYPE,
       1 /*VERSION */,
-      marketDataType
+      marketDataType,
     ]);
 
     // it's not connection-level mode to restore on reconnection
     this._marketDataType = marketDataType;
   }
 
-
-
   async reqSmartComponents(/*self, requestId: int, bboExchange: str*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
 
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_REQ_SMART_COMPONENTS) {
@@ -310,10 +295,8 @@ class Client {
     */
   }
 
-
-
   async reqMarketRule(/*self, marketRuleId: int*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
 
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_MARKET_RULES) {
@@ -327,8 +310,6 @@ class Client {
     */
   }
 
-
-
   async streamTickByTickData(p) {
     /*
     contract: Contract,
@@ -339,15 +320,16 @@ class Client {
     assert(!p.requestId);
 
     p.requestId = await this._allocateRequestId();
-    await this._sendFieldsetRateLimited(request_tickByTickData(this._serverVersion, p));
+    await this._sendFieldsetRateLimited(
+      request_tickByTickData(this._serverVersion, p)
+    );
 
     return this._incomeHandler.requestIdEmitter(p.requestId, () => {
       this._sendFieldsetRateLimited(
-        request_cancelTickByTickData(this._serverVersion, p.requestId));
+        request_cancelTickByTickData(this._serverVersion, p.requestId)
+      );
     });
   }
-
-
 
   /*
   ##########################################################################
@@ -358,7 +340,7 @@ class Client {
   async calculateImpliedVolatility(/*self, requestId:TickerId, contract:Contract,
                                optionPrice:float, underPrice:float,
                                implVolOptions:TagValueList*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """calculate volatility for a supplied
     option price and underlying price. Result will be delivered
@@ -419,10 +401,8 @@ class Client {
     */
   }
 
-
-
   async cancelCalculateImpliedVolatility(/*self, requestId:TickerId*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """cancel a request to calculate
     volatility for a supplied option price and underlying price.
@@ -445,11 +425,10 @@ class Client {
     */
   }
 
-
   async calculateOptionPrice(/*self, requestId:TickerId, contract:Contract,
                          volatility:float, underPrice:float,
                          optPrcOptions:TagValueList*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """calculate option price and greek values
     for a supplied volatility and underlying price.
@@ -509,10 +488,8 @@ class Client {
     */
   }
 
-
-
   async cancelCalculateOptionPrice(/*self, requestId:TickerId*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """cancel a request to calculate the option
     price and greek values for a supplied volatility and underlying price.
@@ -535,12 +512,10 @@ class Client {
     */
   }
 
-
-
   async exerciseOptions(/*self, requestId:TickerId, contract:Contract,
                     exerciseAction:int, exerciseQuantity:int,
                     account:str, override:int*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """requestId:TickerId - The ticker id. multipleust be a unique value.
     contract:Contract - This structure contains a description of the
@@ -595,8 +570,6 @@ class Client {
     */
   }
 
-
-
   /*
   #########################################################################
   ################## Orders
@@ -613,17 +586,17 @@ class Client {
     order:Order - This structure contains the details of tradedhe order.
         Note: Each client MUST connect with a unique clientId.*/
     assert(!p.orderId);
-
     p.orderId = await this._allocateRequestId();
     p.order.clientId = this._clientId;
 
-    await this._sendFieldsetRateLimited(
-      request_placeOrder(this._serverVersion, p));
+    let test = request_placeOrder(this._serverVersion, p);
+    //    console.log("GGG", request_placeOrder(this._serverVersion, p));
+    let result = await this._sendFieldsetRateLimited(test);
+    // console.trace();
+    // console.log("HHHH", p);
 
     return p.orderId;
   }
-
-
 
   async cancelOrder(orderId) {
     /* cancel an order. */
@@ -631,13 +604,11 @@ class Client {
     await this._sendFieldsetExpirable([
       OutcomeMessageType.CANCEL_ORDER,
       1 /* VERSION */,
-      orderId
+      orderId,
     ]);
 
     return await this._incomeHandler.awaitRequestIdErrorCode(orderId, 202);
   }
-
-
 
   async getOpenOrders() {
     /* request the open orders that were placed from this client.
@@ -649,14 +620,13 @@ class Client {
 
     await this._sendFieldsetExpirable([
       OutcomeMessageType.REQ_OPEN_ORDERS,
-      1 /* VERSION */
+      1 /* VERSION */,
     ]);
 
     return await this._incomeHandler.awaitMessageType(
-      IncomeMessageType.OPEN_ORDER_END);
+      IncomeMessageType.OPEN_ORDER_END
+    );
   }
-
-
 
   async reqAutoOpenOrders(bAutoBind) {
     /* request that newly created TWS orders
@@ -672,10 +642,9 @@ class Client {
     await this._sendFieldsetRateLimited([
       OutcomeMessageType.REQ_AUTO_OPEN_ORDERS,
       1 /* VERSION */,
-      bAutoBind
+      bAutoBind,
     ]);
   }
-
 
   async getAllOpenOrders() {
     /* request the open orders placed from all
@@ -686,14 +655,13 @@ class Client {
 
     await this._sendFieldsetExpirable([
       OutcomeMessageType.REQ_ALL_OPEN_ORDERS,
-      1 /* VERSION */
+      1 /* VERSION */,
     ]);
 
     return await this._incomeHandler.awaitMessageType(
-      IncomeMessageType.OPEN_ORDER_END);
+      IncomeMessageType.OPEN_ORDER_END
+    );
   }
-
-
 
   async reqGlobalCancel() {
     /* Use this function to cancel all open orders globally. It
@@ -704,10 +672,9 @@ class Client {
 
     await this._sendFieldsetRateLimited([
       OutcomeMessageType.REQ_GLOBAL_CANCEL,
-      1 /* VERSION */
+      1 /* VERSION */,
     ]);
   }
-
 
   /*
   #########################################################################
@@ -729,15 +696,13 @@ class Client {
     await this._sendFieldsetRateLimited([
       OutcomeMessageType.REQ_ACCT_DATA,
       VERSION,
-      p.subscribe,  // TRUE = subscribe, FALSE = unsubscribe.
-      p.accountCode   // srv v9 and above, the account code. This will only be used for FA clients
+      p.subscribe, // TRUE = subscribe, FALSE = unsubscribe.
+      p.accountCode, // srv v9 and above, the account code. This will only be used for FA clients
     ]);
   }
 
-
-
   async reqAccountSummary(/*self, requestId:int, groupName:str, tags:str*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """Call this method to request and keep up to date the data that appears
     on the TWS Account Window Summary tab. The data is returned by
@@ -807,9 +772,8 @@ class Client {
     */
   }
 
-
   async cancelAccountSummary(/*self, requestId:int*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """Cancels the request for Account Window Summary tab data.
 
@@ -827,7 +791,6 @@ class Client {
     */
   }
 
-
   async getPositions() {
     /* Returns real-time position data for all accounts. */
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_POSITIONS) {
@@ -836,11 +799,14 @@ class Client {
 
     const VERSION = 1;
 
-    await this._sendFieldsetExpirable([OutcomeMessageType.REQ_POSITIONS, VERSION]);
-    return await this._incomeHandler.awaitMessageType(IncomeMessageType.POSITION_END);
+    await this._sendFieldsetExpirable([
+      OutcomeMessageType.REQ_POSITIONS,
+      VERSION,
+    ]);
+    return await this._incomeHandler.awaitMessageType(
+      IncomeMessageType.POSITION_END
+    );
   }
-
-
 
   async cancelPositions() {
     /* Cancels real-time position updates. */
@@ -850,13 +816,14 @@ class Client {
 
     const VERSION = 1;
 
-    await this._sendFieldsetRateLimited([OutcomeMessageType.CANCEL_POSITIONS, VERSION]);
+    await this._sendFieldsetRateLimited([
+      OutcomeMessageType.CANCEL_POSITIONS,
+      VERSION,
+    ]);
   }
 
-
-
   async reqPositionsMulti(/*self, requestId:int, account:str, modelCode:str*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """Requests positions for account and/or model.
     Results are delivered via EWrapper.positionMulti() and
@@ -880,10 +847,8 @@ class Client {
     */
   }
 
-
-
   async cancelPositionsMulti(/*self, requestId:int*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_MODELS_SUPPORT) {
         throw new Error(              "  It does not support cancel positions multi request.")
@@ -899,11 +864,9 @@ class Client {
     */
   }
 
-
-
   async reqAccountUpdatesMulti(/*self, requestId: int, account:str, modelCode:str,
                             ledgerAndNLV:bool*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """Requests account updates for account and/or model."""
 
@@ -926,10 +889,8 @@ class Client {
     */
   }
 
-
-
   async cancelAccountUpdatesMulti(/*self, requestId:int*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_MODELS_SUPPORT) {
         throw new Error(              "  It does not support cancel account updates multi request.")
@@ -945,8 +906,6 @@ class Client {
     */
   }
 
-
-
   /*
   #########################################################################
   ################## Daily PnL
@@ -954,7 +913,7 @@ class Client {
   */
 
   async reqPnL(/*self, requestId: int, account: str, modelCode: str*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_PNL) {
         throw new Error(              "  It does not support PnL request.")
@@ -969,10 +928,8 @@ class Client {
     */
   }
 
-
-
   async cancelPnL(/*self, requestId: int*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_PNL) {
         throw new Error(              "  It does not support PnL request.")
@@ -986,7 +943,7 @@ class Client {
   }
 
   async reqPnLSingle(/*self, requestId: int, account: str, modelCode: str, conid: int*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_PNL) {
         throw new Error(                         "  It does not support PnL request.")
@@ -1002,8 +959,6 @@ class Client {
     */
   }
 
-
-
   async cancelPnLSingle(/*self, requestId: int*/) {
     /*
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_PNL) {
@@ -1017,8 +972,6 @@ class Client {
     */
   }
 
-
-
   /*
   #########################################################################
   ################## Executions
@@ -1026,7 +979,7 @@ class Client {
   */
 
   async reqExecutions(/*self, requestId:int, execFilter:ExecutionFilter*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """When this function is called, the execution reports that meet the
     filter criteria are downloaded to the client via the execDetails()
@@ -1068,8 +1021,6 @@ class Client {
     */
   }
 
-
-
   /*
   #########################################################################
   ################## Contract Details
@@ -1092,41 +1043,46 @@ class Client {
 
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_TRADING_CLASS) {
       if (contract.tradingClass) {
-        throw new Error("It does not support tradingClass parameter in reqContractDetails.");
+        throw new Error(
+          "It does not support tradingClass parameter in reqContractDetails."
+        );
       }
     }
 
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_LINKING) {
       if (contract.primaryExchange) {
-        throw new Error("It does not support primaryExchange parameter in reqContractDetails.");
+        throw new Error(
+          "It does not support primaryExchange parameter in reqContractDetails."
+        );
       }
     }
 
     // send req mkt data msg
-    let flds = [
-      OutcomeMessageType.REQ_CONTRACT_DATA,
-      8 /* VERSION */
-    ];
+    let flds = [OutcomeMessageType.REQ_CONTRACT_DATA, 8 /* VERSION */];
 
-    if (this._serverVersion >= ServerVersion.MIN_SERVER_VER_CONTRACT_DATA_CHAIN) {
+    if (
+      this._serverVersion >= ServerVersion.MIN_SERVER_VER_CONTRACT_DATA_CHAIN
+    ) {
       flds.push(requestId);
     }
 
     // send contract fields
-    flds.push(contract.conId);   // srv v37 and above
+    flds.push(contract.conId); // srv v37 and above
     flds.push(contract.symbol);
     flds.push(contract.secType);
     flds.push(contract.lastTradeDateOrContractMonth);
     flds.push(contract.strike);
     flds.push(contract.right);
-    flds.push(contract.multiplier);   // srv v15 and above
+    flds.push(contract.multiplier); // srv v15 and above
 
     if (this._serverVersion >= ServerVersion.MIN_SERVER_VER_PRIMARYEXCH) {
       flds.push(contract.exchange);
       flds.push(contract.primaryExchange);
     } else if (this._serverVersion >= ServerVersion.MIN_SERVER_VER_LINKING) {
-      if (contract.primaryExchange &&
-          (contract.exchange == "BEST" || contract.exchange == "SMART")) {
+      if (
+        contract.primaryExchange &&
+        (contract.exchange == "BEST" || contract.exchange == "SMART")
+      ) {
         flds.push(contract.exchange + ":" + contract.primaryExchange);
       } else {
         flds.push(contract.exchange);
@@ -1140,7 +1096,7 @@ class Client {
       flds.push(contract.tradingClass);
     }
 
-    flds.push(contract.includeExpired);   // srv v31 and above
+    flds.push(contract.includeExpired); // srv v31 and above
 
     if (this._serverVersion >= ServerVersion.MIN_SERVER_VER_SEC_ID_TYPE) {
       flds.push(contract.secIdType);
@@ -1151,7 +1107,6 @@ class Client {
     return await this._incomeHandler.awaitRequestId(requestId);
   }
 
-
   /*
   #########################################################################
   ################## Market Depth
@@ -1159,7 +1114,7 @@ class Client {
   */
 
   async reqMktDepthExchanges() {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_REQ_MKT_DEPTH_EXCHANGES) {
         throw new Error(                         "  It does not support market depth exchanges request.")
@@ -1173,7 +1128,7 @@ class Client {
 
   async reqMktDepth(/*self, requestId:TickerId, contract:Contract,
                 numRows:int, isSmartDepth:bool, mktDepthOptions:TagValueList*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """request market depth for a specific
     contract. The market depth will be returned by the updateMktDepth() and
@@ -1253,10 +1208,8 @@ class Client {
     */
   }
 
-
-
   async cancelMktDepth(/*self, requestId:TickerId, isSmartDepth:bool*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """After calling this function, market depth data for the specified id
     will stop flowing.
@@ -1289,8 +1242,6 @@ class Client {
     */
   }
 
-
-
   /*
   #########################################################################
   ################## News Bulletins
@@ -1298,7 +1249,7 @@ class Client {
   */
 
   async reqNewsBulletins(/*self, allMsgs:bool*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """start receiving news bulletins. Each bulletin
     will be returned by the updateNewsBulletin() event.
@@ -1319,10 +1270,8 @@ class Client {
     */
   }
 
-
-
   async cancelNewsBulletins() {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """stop receiving news bulletins."""
 
@@ -1335,7 +1284,6 @@ class Client {
     */
   }
 
-
   /*
   #########################################################################
   ################## Financial Advisors
@@ -1343,7 +1291,7 @@ class Client {
   */
 
   async reqManagedAccts() {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """request the list of managed accounts. The list
     will be returned by the managedAccounts() function on the EWrapper.
@@ -1361,10 +1309,8 @@ class Client {
     */
   }
 
-
-
   async requestFA(/*self, faData:FaDataType*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """request FA configuration information from TWS.
     The data returns in an XML string via a "receiveFA" ActiveX event.
@@ -1387,10 +1333,8 @@ class Client {
     */
   }
 
-
-
   async replaceFA(/*self, faData:FaDataType , cxml:str*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """modify FA configuration information from the
     API. Note that this can also be done manually in TWS itself.
@@ -1413,8 +1357,6 @@ class Client {
     return this._sendFieldsetRateLimited(msg)
     */
   }
-
-
 
   /*
   #########################################################################
@@ -1505,7 +1447,9 @@ class Client {
 
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_TRADING_CLASS) {
       if (contract.tradingClass || contract.conId > 0) {
-        throw new Error("It does not support conId and tradingClass parameters in reqHistoricalData.");
+        throw new Error(
+          "It does not support conId and tradingClass parameters in reqHistoricalData."
+        );
       }
     }
 
@@ -1540,13 +1484,13 @@ class Client {
       flds.push(contract.tradingClass);
     }
 
-    flds.push(contract.includeExpired);   // srv v31 and above
-    flds.push(endDateTime);   // srv v20 and above
-    flds.push(barSizeSetting);   // srv v20 and above
+    flds.push(contract.includeExpired); // srv v31 and above
+    flds.push(endDateTime); // srv v20 and above
+    flds.push(barSizeSetting); // srv v20 and above
     flds.push(durationStr);
     flds.push(useRth);
     flds.push(whatToShow);
-    flds.push(formatDate);   // srv v16 and above
+    flds.push(formatDate); // srv v16 and above
 
     // Send combo legs for BAG requests
     if (contract.secType == "BAG") {
@@ -1560,7 +1504,9 @@ class Client {
       });
     }
 
-    if (this._serverVersion >= ServerVersion.MIN_SERVER_VER_SYNT_REALTIME_BARS) {
+    if (
+      this._serverVersion >= ServerVersion.MIN_SERVER_VER_SYNT_REALTIME_BARS
+    ) {
       flds.push(keepUpToDate);
     }
 
@@ -1580,8 +1526,6 @@ class Client {
     return await this._incomeHandler.awaitRequestId(requestId);
   }
 
-
-
   /**
    * Used if an internet disconnect has occurred or the results of a query
    * are otherwise delayed and the application is no longer interested in receiving
@@ -1595,10 +1539,9 @@ class Client {
     await this._sendFieldsetRateLimited([
       OutcomeMessageType.CANCEL_HISTORICAL_DATA,
       VERSION,
-      requestId
+      requestId,
     ]);
   }
-
 
   /**
    * Returns the timestamp of earliest available historical data for a contract and data type.
@@ -1644,24 +1587,25 @@ class Client {
       contract.includeExpired,
       useRth,
       whatToShow,
-      formatDate
+      formatDate,
     ];
 
     await this._sendFieldsetExpirable(flds);
     return await this._incomeHandler.awaitRequestId(requestId);
   }
 
-
-
   async cancelHeadTimeStamp(requestId) {
-    if (this._serverVersion < ServerVersion.MIN_SERVER_VER_CANCEL_HEADTIMESTAMP) {
+    if (
+      this._serverVersion < ServerVersion.MIN_SERVER_VER_CANCEL_HEADTIMESTAMP
+    ) {
       throw new Error("It does not support head time stamp requests.");
     }
 
-    await this._sendFieldsetRateLimited([OutcomeMessageType.CANCEL_HEAD_TIMESTAMP, requestId]);
+    await this._sendFieldsetRateLimited([
+      OutcomeMessageType.CANCEL_HEAD_TIMESTAMP,
+      requestId,
+    ]);
   }
-
-
 
   async getHistogramData(p) {
     /*
@@ -1695,22 +1639,22 @@ class Client {
       contract.tradingClass,
       contract.includeExpired,
       useRth,
-      timePeriod
+      timePeriod,
     ]);
 
     return await this._incomeHandler.awaitRequestId(requestId);
   }
-
-
 
   async cancelHistogramData(requestId) {
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_REQ_HISTOGRAM) {
       throw new Error("It does not support histogram requests.");
     }
 
-    await this._sendFieldsetRateLimited([OutcomeMessageType.CANCEL_HISTOGRAM_DATA, requestId]);
+    await this._sendFieldsetRateLimited([
+      OutcomeMessageType.CANCEL_HISTOGRAM_DATA,
+      requestId,
+    ]);
   }
-
 
   /**
    * Requests historical Time&Sales data for an instrument.
@@ -1766,7 +1710,7 @@ class Client {
       p.numberOfTicks,
       p.whatToShow,
       p.useRth,
-      p.ignoreSize
+      p.ignoreSize,
     ];
 
     let miscOptionsString = "";
@@ -1782,8 +1726,6 @@ class Client {
     return await this._incomeHandler.awaitRequestId(requestId);
   }
 
-
-
   /*
   #########################################################################
   ################## Market Scanners
@@ -1794,11 +1736,14 @@ class Client {
     /* Requests an XML string that describes all possible scanner queries. */
     const VERSION = 1;
 
-    await this._sendFieldsetRateLimited([OutcomeMessageType.REQ_SCANNER_PARAMETERS, VERSION]);
-    return await this._incomeHandler.awaitMessageType(IncomeMessageType.SCANNER_PARAMETERS);
+    await this._sendFieldsetRateLimited([
+      OutcomeMessageType.REQ_SCANNER_PARAMETERS,
+      VERSION,
+    ]);
+    return await this._incomeHandler.awaitMessageType(
+      IncomeMessageType.SCANNER_PARAMETERS
+    );
   }
-
-
 
   async reqScannerSubscription(p) {
     /* requestId:int - The ticker ID. Must be a unique value.
@@ -1814,22 +1759,26 @@ class Client {
     */
 
     let requestId = await this._allocateRequestId();
-    let subscription = p.subscription
-    let scannerSubscriptionFilterOptions = p.scannerSubscriptionFilterOptions
-    let scannerSubscriptionOptions = p.scannerSubscriptionOptions
+    let subscription = p.subscription;
+    let scannerSubscriptionFilterOptions = p.scannerSubscriptionFilterOptions;
+    let scannerSubscriptionOptions = p.scannerSubscriptionOptions;
 
-    if (this._serverVersion < ServerVersion.MIN_SERVER_VER_SCANNER_GENERIC_OPTS &&
-          cannerSubscriptionFilterOptions != null) {
-      throw new Error("It does not support API scanner subscription generic filter options")
+    if (
+      this._serverVersion < ServerVersion.MIN_SERVER_VER_SCANNER_GENERIC_OPTS &&
+      cannerSubscriptionFilterOptions != null
+    ) {
+      throw new Error(
+        "It does not support API scanner subscription generic filter options"
+      );
     }
 
     const VERSION = 4;
 
-    let flds = [
-      OutcomeMessageType.REQ_SCANNER_SUBSCRIPTION
-    ];
+    let flds = [OutcomeMessageType.REQ_SCANNER_SUBSCRIPTION];
 
-    if (this._serverVersion < ServerVersion.MIN_SERVER_VER_SCANNER_GENERIC_OPTS) {
+    if (
+      this._serverVersion < ServerVersion.MIN_SERVER_VER_SCANNER_GENERIC_OPTS
+    ) {
       flds.push(VERSION);
     }
 
@@ -1852,14 +1801,17 @@ class Client {
     flds.push(subscription.couponRateAbove);
     flds.push(subscription.couponRateBelow);
     flds.push(subscription.excludeConvertible);
-    flds.push(subscription.averageOptionVolumeAbove);   // srv v25 and above
-    flds.push(subscription.scannerSettingPairs);   // srv v25 and above
-    flds.push(subscription.stockTypeFilter);   // srv v27 and above
+    flds.push(subscription.averageOptionVolumeAbove); // srv v25 and above
+    flds.push(subscription.scannerSettingPairs); // srv v25 and above
+    flds.push(subscription.stockTypeFilter); // srv v27 and above
 
     // send scannerSubscriptionFilterOptions parameter
-    if (this._serverVersion >= ServerVersion.MIN_SERVER_VER_SCANNER_GENERIC_OPTS) {
+    if (
+      this._serverVersion >= ServerVersion.MIN_SERVER_VER_SCANNER_GENERIC_OPTS
+    ) {
       if (scannerSubscriptionFilterOptions) {
-        let scannerSubscriptionFilterOptionsStr = scannerSubscriptionFilterOptions.join('');
+        let scannerSubscriptionFilterOptionsStr =
+          scannerSubscriptionFilterOptions.join("");
         flds.push(scannerSubscriptionFilterOptionsStr);
       }
     }
@@ -1867,7 +1819,7 @@ class Client {
     // send scannerSubscriptionOptions parameter
     if (this._serverVersion >= ServerVersion.MIN_SERVER_VER_LINKING) {
       if (scannerSubscriptionOptions) {
-        let scannerSubscriptionOptionsStr = scannerSubscriptionOptions.join('');
+        let scannerSubscriptionOptionsStr = scannerSubscriptionOptions.join("");
         flds.push(scannerSubscriptionOptionsStr);
       }
     }
@@ -1876,16 +1828,16 @@ class Client {
     return await this._incomeHandler.awaitRequestId(requestId);
   }
 
-
-
   async cancelScannerSubscription(requestId) {
     /* requestId:int - The ticker ID. Must be a unique value. */
     const VERSION = 1;
 
-    await this._sendFieldsetRateLimited([OutcomeMessageType.CANCEL_SCANNER_SUBSCRIPTION, VERSION, requestId]);
+    await this._sendFieldsetRateLimited([
+      OutcomeMessageType.CANCEL_SCANNER_SUBSCRIPTION,
+      VERSION,
+      requestId,
+    ]);
   }
-
-
 
   /*
   #########################################################################
@@ -1896,7 +1848,7 @@ class Client {
   async reqRealTimeBars(/*self, requestId:TickerId, contract:Contract, barSize:int,
                     whatToShow:str, useRth:bool,
                     realTimeBarsOptions:TagValueList*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """Call the reqRealTimeBars() function to start receiving real time bar
     results through the realtimeBar() EWrapper function.
@@ -1970,8 +1922,6 @@ class Client {
     */
   }
 
-
-
   async cancelRealTimeBars(requestId) {
     /*
     Call the cancelRealTimeBars() function to stop receiving real time bar results.
@@ -1979,10 +1929,12 @@ class Client {
     const VERSION = 1;
 
     // send req mkt data msg
-    await this._sendFieldsetRateLimited([OutcomeMessageType.CANCEL_REAL_TIME_BARS, VERSION, requestId]);
+    await this._sendFieldsetRateLimited([
+      OutcomeMessageType.CANCEL_REAL_TIME_BARS,
+      VERSION,
+      requestId,
+    ]);
   }
-
-
 
   /*
   #########################################################################
@@ -1992,7 +1944,7 @@ class Client {
 
   async reqFundamentalData(/*self, requestId:TickerId , contract:Contract,
                        reportType:str, fundamentalDataOptions:TagValueList*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """receive fundamental data for
     stocks. The appropriate market data subscription must be set up in
@@ -2058,10 +2010,8 @@ class Client {
     */
   }
 
-
-
   async cancelFundamentalData(requestId) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """stop receiving fundamental data.
 
@@ -2083,8 +2033,6 @@ class Client {
     */
   }
 
-
-
   /*
   ########################################################################
   ################## News
@@ -2092,7 +2040,7 @@ class Client {
   */
 
   async reqNewsProviders() {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_REQ_NEWS_PROVIDERS) {
         throw new Error(                 "  It does not support news providers request.")
@@ -2104,10 +2052,8 @@ class Client {
     */
   }
 
-
-
   async reqNewsArticle(/*self, requestId: int, providerCode: str, articleId: str, newsArticleOptions: TagValueList*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_REQ_NEWS_ARTICLE) {
         throw new Error(                 "  It does not support news article request.")
@@ -2133,11 +2079,9 @@ class Client {
     */
   }
 
-
-
   async reqHistoricalNews(/*self, requestId: int, conId: int, providerCodes: str,
                   startDateTime: str, endDateTime: str, totalResults: int, historicalNewsOptions: TagValueList*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_REQ_HISTORICAL_NEWS) {
         throw new Error(                 "  It does not support historical news request.")
@@ -2166,8 +2110,6 @@ class Client {
     */
   }
 
-
-
   /*
   #########################################################################
   ################## Display Groups
@@ -2175,7 +2117,7 @@ class Client {
   */
 
   async queryDisplayGroups(/*self, requestId: int*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """API requests used to integrate with TWS color-grouped windows (display groups).
     TWS color-grouped windows are identified by an integer number. Currently that number ranges from 1 to 7 and are mapped to specific colors, as indicated in TWS.
@@ -2199,10 +2141,8 @@ class Client {
     */
   }
 
-
-
   async subscribeToGroupEvents(/*self, requestId:int, groupId:int*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """requestId:int - The unique number associated with the notification.
     groupId:int - The ID of the group, currently it is a number from 1 to 7.
@@ -2225,10 +2165,8 @@ class Client {
     */
   }
 
-
-
   async updateDisplayGroup(/*self, requestId:int, contractInfo:str*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """requestId:int - The requestId specified in subscribeToGroupEvents().
     contractInfo:str - The encoded value that uniquely represents the
@@ -2256,9 +2194,8 @@ class Client {
     */
   }
 
-
   async unsubscribeFromGroupEvents(/*self, requestId:int*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """requestId:int - The requestId specified in subscribeToGroupEvents()."""
 
@@ -2277,8 +2214,6 @@ class Client {
     this._sendFieldsetRateLimited(msg)
     */
   }
-
-
 
   /**
    * Requests security definition option parameters for viewing a
@@ -2305,16 +2240,21 @@ class Client {
     let underlyingSecType = p.contract.secType;
     let underlyingConId = p.contract.conId;
 
-    if (this._serverVersion < ServerVersion.MIN_SERVER_VER_SEC_DEF_OPT_PARAMS_REQ) {
-      throw new Error("It does not support security definition option request.");
+    if (
+      this._serverVersion < ServerVersion.MIN_SERVER_VER_SEC_DEF_OPT_PARAMS_REQ
+    ) {
+      throw new Error(
+        "It does not support security definition option request."
+      );
     }
 
-    await this._sendFieldsetExpirable([OutcomeMessageType.REQ_SEC_DEF_OPT_PARAMS,
+    await this._sendFieldsetExpirable([
+      OutcomeMessageType.REQ_SEC_DEF_OPT_PARAMS,
       requestId,
       underlyingSymbol,
       futFopExchange,
       underlyingSecType,
-      underlyingConId
+      underlyingConId,
     ]);
 
     let result = await this._incomeHandler.awaitRequestId(requestId);
@@ -2332,10 +2272,8 @@ class Client {
     return [];
   }
 
-
-
   async reqSoftDollarTiers(/*self, requestId:int*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     """Requests pre-defined Soft Dollar Tiers. This is only supported for
     registered professional advisors and hedge and mutual funds who have
@@ -2350,9 +2288,8 @@ class Client {
     */
   }
 
-
   async reqFamilyCodes() {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_REQ_FAMILY_CODES) {
         throw new Error(              "  It does not support family codes request.")
@@ -2364,10 +2301,8 @@ class Client {
     */
   }
 
-
-
   async reqMatchingSymbols(/*self, requestId:int, pattern:str*/) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     if (this._serverVersion < ServerVersion.MIN_SERVER_VER_REQ_MATCHING_SYMBOLS) {
         throw new Error(              "  It does not support matching symbols request.")
@@ -2381,10 +2316,8 @@ class Client {
     */
   }
 
-
-
   async reqCompletedOrders(p) {
-    throw new Error('not implemented yet');
+    throw new Error("not implemented yet");
     /*
     apiOnly:bool
 
@@ -2400,7 +2333,5 @@ class Client {
     */
   }
 }
-
-
 
 export default Client;
