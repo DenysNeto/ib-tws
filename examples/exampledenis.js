@@ -38,17 +38,15 @@ async function run() {
   // });
 
   let compareStates = async (master, slave) => {
-    let oredersToAdd = [];
     Object.keys(master).forEach(async (key) => {
       if (master[key].contract.symbol[0] == "M") return;
       let symbolSlave = "M" + master[key].contract.symbol;
       let currContract = {
         symbol: symbolSlave,
-        secType: master.contract.secType || "FUT",
+        secType: master[key].contract.secType || "FUT",
         lastTradeDateOrContractMonth:
           master[key].contract.lastTradeDateOrContractMonth,
       };
-
       let contractDetails = await clientOrigin.getContractDetails(currContract);
       let contract = {};
       if (contractDetails.length) {
@@ -86,7 +84,7 @@ async function run() {
             totalQuantity: Math.abs(master[key].position - objSlave.position),
           });
         } else {
-          if (Math.abs(master[key].position == 0)) {
+          if (Math.abs(master[key].position) == 0) {
             return;
           }
           order = Order.market({
@@ -94,8 +92,7 @@ async function run() {
             totalQuantity: Math.abs(master[key].position),
           });
         }
-
-        oredersToAdd.push({ contract, order });
+        clientConsumer.placeOrder({ contract, order });
       }
     });
   };
