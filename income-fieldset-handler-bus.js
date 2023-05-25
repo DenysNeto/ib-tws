@@ -123,7 +123,7 @@ class IncomeFieldsetHandlerBus {
       event == "error" &&
       Object.keys(this._requestIdData[requestId].rejects).length
     ) {
-      console.log("VALUE", value);
+      console.log("VALUE", value.message);
       if (this._requestIdData[requestId].resolveOnErrorCode == value.code) {
         this.requestIdResolve(requestId, value);
       } else {

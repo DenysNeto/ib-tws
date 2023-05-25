@@ -36,7 +36,7 @@ import { handler_OPEN_ORDER, handler_COMPLETED_ORDER } from "./order.js";
 
 function todo(name) {
   return function (fields) {
-    Logger(fields, "telegram");
+    // Logger(fields, "telegram");
     console.log(name + " message handler is not implemented yet");
     console.log(fields);
   };

@@ -28,9 +28,11 @@
   "main": "./index.js",
   "exports": "./index.js",
   "dependencies": {
+    "@telegraf/entity": "^0.3.0",
     "alert": "^5.1.4",
     "ip": "^1.1.8",
     "pm2": "^5.3.0",
+    "polygon.io": "^2.1.2",
     "telegraf": "^4.12.2"
   }
 }
