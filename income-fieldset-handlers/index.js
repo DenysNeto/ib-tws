@@ -1,18 +1,5 @@
 import util from "util";
 const debuglog = util.debuglog("ib-tws-api");
-import { Telegraf } from "telegraf";
-
-let Logger = function (message, type, channel_id) {
-  if (type == "alert") {
-    alert(message);
-  }
-  if (type == "telegram") {
-    let CHANNEL_ID = channel_id ? channel_id : "-1001967555467";
-    let BOT_TOKEN = "6271843557:AAEQ6ifCSa5En8lmtWvJ3kPYU-cTPYK6XmE";
-    const bot = new Telegraf(BOT_TOKEN);
-    bot.telegram.sendMessage(CHANNEL_ID, message);
-  }
-};
 
 import IncomeMessageType from "../const-income-message-type.js";
 import ServerVersion from "../const-server-version.js";
@@ -36,7 +23,6 @@ import { handler_OPEN_ORDER, handler_COMPLETED_ORDER } from "./order.js";
 
 function todo(name) {
   return function (fields) {
-    // Logger(fields, "telegram");
     console.log(name + " message handler is not implemented yet");
     console.log(fields);
   };

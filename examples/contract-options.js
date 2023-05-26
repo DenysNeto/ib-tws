@@ -1,20 +1,18 @@
-import { Client, Contract } from '../index.js';
+import { Client, Contract, Order } from '../index.js';
 
 
 
 async function run() {
   let api = new Client({
     host: '127.0.0.1',
-    port: 4001
+    port: 4001,
   });
 
-  let contract = Contract.stock('AAPL');
-
-  let ticker = await api.getMarketDataSnapshot({
-    contract: contract
+  let details = await api.getSecDefOptParams({
+    contract: Contract.stock({symbol: 'AMD', conId: 4391})
   });
 
-  console.log(ticker);
+  console.log(details);
 }
 
 
