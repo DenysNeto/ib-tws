@@ -6,7 +6,7 @@ pm2.connect(false, function (err) {
   }
   pm2.start(
     {
-      script: "examples/exampledenis_changed.js",
+      script: "examples/exampledenis.js",
       name: "App",
     },
     function (err, apps) {
