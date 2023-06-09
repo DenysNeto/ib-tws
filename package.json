@@ -17,11 +17,10 @@
     "startTest": "pm2 start examples/exampledenis.js",
     "restartTest": "pm2 restart examples/exampledenis.js",
     "stopTest": "pm2 stop examples/exampledenis.js",
-    "run_app" : "node pm2-control.js",
-    "starter":"node pm2-starter.js",
-    "killer" : "node pm2-killer.js",
-
-    "monitor_display" : "pm2 monitor"
+    "run_app": "node pm2-control.js",
+    "starter": "node pm2-starter.js",
+    "killer": "node pm2-killer.js",
+    "monitor_display": "pm2 monitor"
   },
   "keywords": [
     "interactivebrokers",
@@ -35,6 +34,7 @@
   "exports": "./index.js",
   "dependencies": {
     "alert": "^5.1.4",
+    "path": "^0.12.7",
     "pm2": "^5.3.0",
     "telegraf": "^4.12.2"
   }

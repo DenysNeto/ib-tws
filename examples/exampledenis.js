@@ -3,8 +3,9 @@ import IP from "ip";
 import { spawn } from "child_process";
 import { Logger, LoggerReply } from "./logger.js";
 import fs from "fs";
-console.log("HERE STARt");
+import path from "path";
 
+let __dirname = path.resolve(path.dirname(""));
 // let largeDataSet = [];
 
 process.env.NODE_DEBUG = "ib-tws-api";
@@ -24,7 +25,7 @@ let StateManager = {
 function spawnScript(script_name, callback, cb_err) {
   let largeDataSet;
   console.log("SPWN_", largeDataSet);
-  const python = spawn("python", [script_name]);
+  const python = spawn("python", [script_name], { windowsHide: true });
 
   python.stdout.on("data", function (data) {
     largeDataSet = data.toString();
@@ -73,7 +74,8 @@ function sendOpenedOrUpdated(data) {
         LoggerReply(
           `
           ▫️ Order ID : ${order.orderId} ▫️ 
-          Updated ! Price : ${order.price}`,
+          Order Updated 🔔 
+          New Limit:  ${order.price}`,
           sendedId[order.orderId].message,
           "-1001568215679",
           undefined,
@@ -87,7 +89,7 @@ function sendOpenedOrUpdated(data) {
     }
   });
 }
-function sendCanceledOrExecuted(data) {
+function sendCancelledOrExecuted(data) {
   data.forEach((order, index) => {
     if (!sendedId[order.orderId] && order.execId && order.quantity > 0) {
       sendedId[order.orderId] = { status: "Executed", order };
@@ -120,8 +122,8 @@ function sendCanceledOrExecuted(data) {
           LoggerReply(
             `
                ▫️ Order ID : ${order.orderId} ▫️ 
-               Updated price : ${order.price}
-               Executed 
+               Order Updated 🔔 
+               Execution : ${order.price}
               `,
             sendedId[order.orderId].message,
             "-1001568215679",
@@ -134,7 +136,7 @@ function sendCanceledOrExecuted(data) {
           LoggerReply(
             `
                ▫️ Order ID : ${order.orderId} ▫️ 
-               Executed 
+               Order Executed  ✅
               `,
             sendedId[order.orderId].message,
             "-1001568215679",
@@ -150,7 +152,7 @@ function sendCanceledOrExecuted(data) {
         LoggerReply(
           `
              ▫️ Order ID : ${order.orderId} ▫️ 
-             Cancelled 
+             Order Cancelled ⛔️
             `,
           sendedId[order.orderId].message,
           "-1001568215679",
@@ -190,18 +192,7 @@ async function run() {
   let pricePercent = 5;
 
   let compareStates = async (master, slave) => {
-    console.log("ENTER_COMPARE");
     Object.keys(master).forEach(async (key) => {
-      console.log("ONEEEe", master[key].contract.symbol);
-      if (
-        master[key].contract.symbol == "M" ||
-        master[key].contract.symbol == "MNQ" ||
-        master[key].contract.symbol == "MMM" ||
-        master[key].contract.symbol == "T" ||
-        master[key].contract.symbol == "USD" ||
-        master[key].contract.symbol == "GOOGL"
-      )
-        return;
       let symbolSlave = "M" + master[key].contract.symbol;
       let currContract = {
         symbol: symbolSlave,
@@ -209,9 +200,14 @@ async function run() {
         lastTradeDateOrContractMonth:
           master[key].contract.lastTradeDateOrContractMonth,
       };
-      let contractDetails = await clientOrigin.getContractDetails(currContract);
+      let contractDetails = undefined;
+      try {
+        contractDetails = await clientOrigin.getContractDetails(currContract);
+      } catch (err) {
+        console.log("ERR_Contract_details", err.message);
+      }
       let contract = {};
-      if (contractDetails.length) {
+      if (contractDetails && contractDetails.length) {
         let contractTemplate = contractDetails[0].contract;
         contract = {
           symbol: contractTemplate.symbol,
@@ -250,7 +246,6 @@ async function run() {
             var currentMarketData = await clientData.getMarketDataSnapshot({
               contract: contract,
             });
-            // console.log("SNAPSHOT", currentMarketData);
 
             if (
               Object.keys(currentMarketData).length == 0 ||
@@ -316,18 +311,6 @@ async function run() {
         }
 
         clientConsumer.placeOrder({ contract, order });
-
-        // Logger(
-        //   `Symbol111 : ${contract.symbol}\n
-        //   Price : ${currentMarketData.last}\n
-        //   Quantity : ${order.totalQuantity}\n
-        //   Order call : ${order.action} ${order.orderType || ""} ${
-        //     order.lmtPrice || ""
-        //   }\n
-        //   `,
-        //   "telegram",
-        //   "-1001568215679"
-        // );
       }
     });
   };
@@ -338,7 +321,6 @@ async function run() {
 
   setInterval(async () => {
     try {
-      console.log("INSIDEEEEEE");
       await clientOrigin.connect();
       await clientConsumer.connect();
       await clientData.connect();
@@ -381,7 +363,7 @@ async function run() {
         StateManager.state.isSlaveConnected = false;
       }
     }
-  }, 5000);
+  }, 2000);
 }
 
 run()
@@ -392,11 +374,15 @@ run()
     // process.exit();
   });
 
-let data = fs.readFileSync("./sendedMessages.txt", "utf8", (err, data) => {
-  if (err) {
-    console.log("Err sendedMessage", err);
+let data = fs.readFileSync(
+  __dirname + "/examples/sendedMessages.txt",
+  "utf8",
+  (err, data) => {
+    if (err) {
+      console.log("Err sendedMessage", err);
+    }
   }
-});
+);
 if (data == null || data == "" || data == undefined) {
   data = "{}";
 }
@@ -415,7 +401,9 @@ setInterval(() => {
       }
     },
     (err) => {
-      if (err) console.log(err);
+      if (err) {
+        console.log("OPENED_ORDERS", err.message);
+      }
     }
   );
 
@@ -424,16 +412,22 @@ setInterval(() => {
     "./getAllCompletedOrders.py",
     (data) => {
       console.log("DATA_completed", data);
-      sendCanceledOrExecuted(data);
+      sendCancelledOrExecuted(data);
     },
     (err) => {
-      if (err) console.log(err);
+      if (err) {
+        console.log("COMPLETED_ORDERS", err.message);
+      }
     }
   );
   console.log("SENDED_ID", sendedId);
-  fs.writeFile("./sendedMessages.txt", JSON.stringify(sendedId), (err) => {
-    if (err) {
-      console.error(err);
+  fs.writeFile(
+    __dirname + "/examples/sendedMessages.txt",
+    JSON.stringify(sendedId),
+    (err) => {
+      if (err) {
+        console.log("WRITE_FILE", err.message);
+      }
     }
-  });
+  );
 }, 4000);
