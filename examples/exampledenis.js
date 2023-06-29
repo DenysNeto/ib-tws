@@ -6,7 +6,9 @@ import fs from "fs";
 import path from "path";
 
 let __dirname = path.resolve(path.dirname(""));
-// let largeDataSet = [];
+__dirname = __dirname.includes("examples")
+  ? __dirname
+  : __dirname + "/examples";
 
 process.env.NODE_DEBUG = "ib-tws-api";
 
@@ -30,7 +32,6 @@ function spawnScript(script_name, callback, cb_err) {
   python.stdout.on("data", function (data) {
     largeDataSet = data.toString();
     console.log("SPWN_DATA", largeDataSet);
-    console.log("QQQQq", largeDataSet);
     if (largeDataSet.length > 2 && !largeDataSet.startsWith("[]")) {
       try {
         callback(JSON.parse(largeDataSet));
@@ -56,9 +57,9 @@ function sendOpenedOrUpdated(data) {
 
       Logger(
         `
-      ▫️ Order ID : ${order.orderId} ▫️ 
+      ▫️ Order ID : ${order.orderId} ▫️
       Symbol : ${order.symbol}
-      Quantity : ${Math.floor(+order.quantity)} 
+      Quantity : ${Math.floor(+order.quantity)}
       Order call : ${order.action} ${order.orderType || ""} ${order.price}
       Time : ${order.time}
        `,
@@ -73,8 +74,8 @@ function sendOpenedOrUpdated(data) {
       if (sendedId[order.orderId].order.price != order.price) {
         LoggerReply(
           `
-          ▫️ Order ID : ${order.orderId} ▫️ 
-          Order Updated 🔔 
+          ▫️ Order ID : ${order.orderId} ▫️
+          Order Updated 🔔
           New Limit:  ${order.price}`,
           sendedId[order.orderId].message,
           "-1001568215679",
@@ -91,15 +92,15 @@ function sendOpenedOrUpdated(data) {
 }
 function sendCancelledOrExecuted(data) {
   data.forEach((order, index) => {
-    if (!sendedId[order.orderId] && order.execId && order.quantity > 0) {
+    if (!sendedId[order.orderId] && order.status && order.quantity > 0) {
       sendedId[order.orderId] = { status: "Executed", order };
       Logger(
         `
-      ▫️ Order ID : ${order.orderId} ▫️ 
+      ▫️ Order ID : ${order.orderId} ▫️
       Execution ID : ${order.execId}
       Symbol : ${order.symbol}
       Price : ${order.price}
-      Quantity : ${Math.floor(+order.quantity)} 
+      Quantity : ${Math.floor(+order.quantity)}
       Order call : ${order.action} ${order.orderType || ""}
       Time : ${order.time}
        `,
@@ -121,8 +122,8 @@ function sendCancelledOrExecuted(data) {
           sendedId[order.orderId].order.price = order.price;
           LoggerReply(
             `
-               ▫️ Order ID : ${order.orderId} ▫️ 
-               Order Updated 🔔 
+               ▫️ Order ID : ${order.orderId} ▫️
+               Order Updated 🔔
                Execution : ${order.price}
               `,
             sendedId[order.orderId].message,
@@ -135,7 +136,7 @@ function sendCancelledOrExecuted(data) {
         } else {
           LoggerReply(
             `
-               ▫️ Order ID : ${order.orderId} ▫️ 
+               ▫️ Order ID : ${order.orderId} ▫️
                Order Executed  ✅
               `,
             sendedId[order.orderId].message,
@@ -151,7 +152,7 @@ function sendCancelledOrExecuted(data) {
         sendedId[order.orderId].status = "Cancelled";
         LoggerReply(
           `
-             ▫️ Order ID : ${order.orderId} ▫️ 
+             ▫️ Order ID : ${order.orderId} ▫️
              Order Cancelled ⛔️
             `,
           sendedId[order.orderId].message,
@@ -180,10 +181,10 @@ async function run() {
     port: 7500,
   });
 
-  let clientData = new Client({
-    host: "127.0.0.1",
-    port: 7501,
-  });
+  // let clientData = new Client({
+  //   host: "127.0.0.1",
+  //   port: 7501,
+  // });
 
   // await clientOrigin.connect();
   // await clientData.connect();
@@ -192,6 +193,7 @@ async function run() {
   let pricePercent = 5;
 
   let compareStates = async (master, slave) => {
+    console.log("MASTER", master);
     Object.keys(master).forEach(async (key) => {
       let symbolSlave = "M" + master[key].contract.symbol;
       let currContract = {
@@ -204,8 +206,9 @@ async function run() {
       try {
         contractDetails = await clientOrigin.getContractDetails(currContract);
       } catch (err) {
-        console.log("ERR_Contract_details", err.message);
+        console.log("ERR_Contract_details", err.message, currContract);
       }
+      console.log("AFTER", master[key].contract.symbol, contractDetails);
       let contract = {};
       if (contractDetails && contractDetails.length) {
         let contractTemplate = contractDetails[0].contract;
@@ -243,16 +246,17 @@ async function run() {
             master[key].avgCost / master[key].contract.multiplier;
 
           try {
-            var currentMarketData = await clientData.getMarketDataSnapshot({
-              contract: contract,
-            });
+            var currentMarketData = {};
+            //  await clientData.getMarketDataSnapshot({
+            //   contract: contract,
+            // });
 
             if (
               Object.keys(currentMarketData).length == 0 ||
               currentMarketData.bid == -1
             ) {
               Logger("Snapshot error", "telegram");
-              return;
+              //return;
             }
             if (currentMarketData.last > 0 && averagePrice > 0) {
               let priceFromPercent = (averagePrice * pricePercent) / 100;
@@ -323,7 +327,7 @@ async function run() {
     try {
       await clientOrigin.connect();
       await clientConsumer.connect();
-      await clientData.connect();
+      // await clientData.connect();
       if (!StateManager.state.isMasterConnected) {
         //  Logger("Connected to port : 7497", "telegram");
         StateManager.state.isMasterConnected = true;
@@ -363,9 +367,10 @@ async function run() {
         StateManager.state.isSlaveConnected = false;
       }
     }
-  }, 2000);
+  }, 3000);
 }
 
+// TODO UNCOMMENT
 run()
   .then(() => {})
   .catch((e) => {
@@ -375,7 +380,7 @@ run()
   });
 
 let data = fs.readFileSync(
-  __dirname + "/examples/sendedMessages.txt",
+  __dirname + "/sendedMessages.txt",
   "utf8",
   (err, data) => {
     if (err) {
@@ -393,7 +398,7 @@ setInterval(() => {
   console.log("INTERVAL_RUN");
   // getAllOpenedOrders
   spawnScript(
-    "./getAllOpenedOrders.py",
+    __dirname + "/getAllOpenedOrders.py",
     (data) => {
       console.log("DATA_opened", data);
       if (data && data.length > 0) {
@@ -409,7 +414,7 @@ setInterval(() => {
 
   // getAllCompletedOrders
   spawnScript(
-    "./getAllCompletedOrders.py",
+    __dirname + "/getAllCompletedOrders.py",
     (data) => {
       console.log("DATA_completed", data);
       sendCancelledOrExecuted(data);
@@ -421,8 +426,8 @@ setInterval(() => {
     }
   );
   console.log("SENDED_ID", sendedId);
-  fs.writeFile(
-    __dirname + "/examples/sendedMessages.txt",
+  fs.writeFileSync(
+    __dirname + "/sendedMessages.txt",
     JSON.stringify(sendedId),
     (err) => {
       if (err) {

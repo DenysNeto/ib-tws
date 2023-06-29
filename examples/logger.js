@@ -20,7 +20,9 @@ export function Logger(message, type, channel_id, callback, callback_err) {
         }
       })
       .catch((err) => {
-        callback_err(err);
+        if (callback_err) {
+          callback_err(err);
+        }
       });
   }
 }

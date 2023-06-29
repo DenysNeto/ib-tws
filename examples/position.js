@@ -9,10 +9,14 @@ async function run() {
   });
 
   let positions = await api.getPositions();
-  let ordersTest = await api.getAllOpenOrders();
+  positions = await api.getContractDetails({
+    symbol: "MES",
+    secType: "FUT",
+    lastTradeDateOrContractMonth: "20230915",
+  });
+  //let ordersTest = await api.getAllOpenOrders();
   console.log("Positions");
   console.log(positions);
-  console.log("Orders", ordersTest);
 }
 
 run()
